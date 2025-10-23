@@ -159,4 +159,37 @@ router.put('/:id/status', protect, admin, async (req, res) => {
   }
 });
 
+// @route   PUT /api/orders/:id
+// @desc    Update order (status, etc.)
+// @access  Private/Admin
+router.put('/:id', protect, admin, async (req, res) => {
+  try {
+    const { status, deliveryAddress } = req.body;
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Update fields if provided
+    if (status) order.status = status;
+    if (deliveryAddress) order.deliveryAddress = deliveryAddress;
+
+    await order.save();
+
+    const updatedOrder = await Order.findById(order._id)
+      .populate('user', 'name email')
+      .populate('items.food', 'name price');
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error(error);
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;
